@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woca Week - Acesso Restrito</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        woca: {
+                            orange: '#FF6B00',
+                            dark: '#050505', 
+                            glass: 'rgba(30, 30, 30, 0.4)', 
+                            glassBorder: 'rgba(255, 255, 255, 0.08)',
+                            text: '#F0F0F0', 
+                            muted: '#A0A0A0'
+                        }
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+                        'glow': '0 0 15px rgba(255, 107, 0, 0.3)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Fundo Base */
+        body {
+            background-color: #050505;
+            color: #F0F0F0;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 107, 0, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 60, 0, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(40, 40, 40, 0.4) 0%, transparent 60%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        
+        .glass-panel {
+            background: rgba(25, 25, 25, 0.4); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Inputs */
+        select, input[type="text"], input[type="password"] {
+            appearance: none;
+            background-color: #121212; 
+            color: #F0F0F0;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A0A0A0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.7rem center;
+            background-size: 1em;
+            padding-right: 2.5rem; 
+        }
+        
+        input:focus, select:focus { 
+            outline: none; 
+            border-color: #FF6B00 !important; 
+            box-shadow: 0 0 10px rgba(255, 107, 0, 0.2); 
+        }
+
+        /* Login Screen Specifics */
+        #loginScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background-color: #050505;
+            background-image: 
+                radial-gradient(circle at 50% 30%, rgba(255, 107, 0, 0.1) 0%, transparent 50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Animations */
+        .fade-out { animation: fadeOut 0.5s forwards; }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
+        
+        .shake { animation: shake 0.5s; }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
+
+        /* Loader */
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid #FF6B00;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Toast */
+        #toast {
+            visibility: hidden;
+            min-width: 300px;
+            background-color: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(10px);
+            color: #fff;
+            text-align: left;
+            border-radius: 50px; 
+            padding: 14px 24px;
+            position: fixed;
+            z-index: 2000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%) translateY(20px); 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Variantes de Cor do Toast */
+        #toast.toast-saving { border-color: rgba(255, 107, 0, 0.5); box-shadow: 0 0 20px rgba(255, 107, 0, 0.15); }
+        #toast.toast-success { border-color: rgba(34, 197, 94, 0.5); box-shadow: 0 0 20px rgba(34, 197, 94, 0.15); }
+        #toast.toast-error { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 20px rgba(239, 68, 68, 0.15); }
+
+        #toast i { font-size: 16px; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans selection:bg-woca-orange selection:text-white">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen">
+        <div class="glass-panel p-8 rounded-2xl w-full max-w-md mx-4 relative overflow-hidden">
+            <!-- Glow Effect -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-woca-orange/20 blur-3xl rounded-full pointer-events-none"></div>
+            
+            <div class="relative z-10 flex flex-col items-center">
+                <img src="https://i.postimg.cc/nLD5MpPn/Logo-Woca-Icone.png" alt="Woca Logo" class="h-16 w-auto mb-6 drop-shadow-lg">
+                
+                <h2 class="text-2xl font-bold text-white mb-2" id="authTitle">Acesso Restrito</h2>
+                <p class="text-woca-muted text-sm text-center mb-8" id="authSubtitle">Entre com suas credenciais para acessar o painel da Woca Week.</p>
+
+                <!-- LOGIN FORM -->
+                <div id="formLogin" class="w-full space-y-4">
+                    <input type="text" id="loginUser" placeholder="Usuário" class="w-full rounded-lg px-4 py-3 bg-black/40 border border-white/10 text-white focus:border-woca-orange transition-all">
+                    <input type="password" id="loginPass" placeholder="Senha" class="w-full rounded-lg px-4 py-3 bg-black/40 border border-white/10 text-white focus:border-woca-orange transition-all">
+                    
+                    <button onclick="attemptLogin()" class="w-full bg-woca-orange hover:bg-orange-600 text-white font-bold py-3 rounded-lg shadow-lg shadow-orange-900/20 transition-all transform hover:scale-[1.02] flex justify-center items-center gap-2">
+                        <span id="btnTextLogin">Entrar</span>
+                        <div id="loaderLogin" class="loader w-4 h-4 border-2 hidden"></div>
+                    </button>
+                    
+                    <p class="text-center text-xs text-woca-muted mt-4">
+                        Não tem acesso? <button onclick="toggleAuthMode('register')" class="text-woca-orange hover:underline font-bold">Solicitar Conta</button>
+                    </p>
+                </div>
+
+                <!-- REGISTER FORM -->
+                <div id="formRegister" class="w-full space-y-4 hidden">
+                    <input type="text" id="regUser" placeholder="Escolha um Usuário" class="w-full rounded-lg px-4 py-3 bg-black/40 border border-white/10 text-white focus:border-woca-orange transition-all">
+                    <input type="password" id="regPass" placeholder="Escolha uma Senha" class="w-full rounded-lg px-4 py-3 bg-black/40 border border-white/10 text-white focus:border-woca-orange transition-all">
+                    
+                    <button onclick="attemptRegister()" class="w-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold py-3 rounded-lg transition-all flex justify-center items-center gap-2">
+                        <span id="btnTextReg">Solicitar Acesso</span>
+                        <div id="loaderReg" class="loader w-4 h-4 border-2 hidden"></div>
+                    </button>
+                    
+                    <p class="text-center text-xs text-woca-muted mt-4">
+                        Já tem conta? <button onclick="toggleAuthMode('login')" class="text-woca-orange hover:underline font-bold">Fazer Login</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP (Hidden by Login) -->
+    <div id="appContainer" class="hidden min-h-screen flex flex-col">
+        <!-- Navbar -->
+        <nav class="border-b border-woca-glassBorder glass-panel sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-20"> 
+                    <div class="flex items-center gap-4">
+                        <img src="https://i.postimg.cc/nLD5MpPn/Logo-Woca-Icone.png" alt="Woca Logo" class="h-10 w-auto object-contain drop-shadow-lg">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-lg tracking-tight text-white leading-tight">Woca Week</span>
+                            <span class="text-xs text-woca-muted font-light uppercase tracking-widest">Contatos Pós-live</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <!-- Link para Planilha -->
+                        <a href="https://docs.google.com/spreadsheets/d/1YXpFSVZiaWXtNmjr2niIl_ptvTTDfo24NfVFxSje44k/edit?gid=630801063#gid=630801063" 
+                           target="_blank"
+                           class="hidden sm:flex items-center gap-2 bg-woca-orange/10 hover:bg-woca-orange/20 border border-woca-orange/50 text-woca-orange text-xs font-semibold px-4 py-2 rounded-full transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,107,0,0.3)]">
+                            <i class="fa-solid fa-table"></i>
+                            Acessar Base
+                        </a>
+                        <div class="flex items-center gap-2 text-green-400 text-xs font-medium pl-4 border-l border-white/10">
+                            <i class="fa-solid fa-user-circle"></i> <span id="displayUser">User</span>
+                        </div>
+                        <button onclick="logout()" class="text-woca-muted hover:text-red-400 transition-colors p-2" title="Sair">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 max-w-7xl mx-auto">
+                <!-- Cards -->
+                <div class="glass-panel rounded-2xl p-6 hover:-translate-y-1 duration-300 transition-transform">
+                    <div class="flex justify-between"><div><p class="text-[10px] font-bold text-woca-muted uppercase tracking-widest mb-1">Total Leads</p><p class="text-3xl font-bold text-white" id="stat-total">0</p></div><div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-woca-muted border border-white/5"><i class="fa-solid fa-users"></i></div></div>
+                </div>
+                <div class="glass-panel rounded-2xl p-6 hover:-translate-y-1 duration-300 transition-transform">
+                    <div class="flex justify-between"><div><p class="text-[10px] font-bold text-woca-muted uppercase tracking-widest mb-1">Contatados</p><p class="text-3xl font-bold text-blue-400" id="stat-contacted">0</p></div><div class="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 border border-blue-500/20"><i class="fa-solid fa-comments"></i></div></div>
+                </div>
+                <div class="glass-panel rounded-2xl p-6 hover:-translate-y-1 duration-300 transition-transform relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 w-20 h-20 bg-woca-orange/10 blur-2xl rounded-full pointer-events-none"></div>
+                    <div class="flex justify-between relative z-10"><div><p class="text-[10px] font-bold text-woca-muted uppercase tracking-widest mb-1">Vendas (Ganho)</p><p class="text-3xl font-bold text-woca-orange" id="stat-won">0</p></div><div class="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-woca-orange border border-orange-500/20"><i class="fa-solid fa-trophy"></i></div></div>
+                </div>
+                <div class="glass-panel rounded-2xl p-6 hover:-translate-y-1 duration-300 transition-transform">
+                    <div class="flex justify-between"><div><p class="text-[10px] font-bold text-woca-muted uppercase tracking-widest mb-1">Conversão</p><p class="text-3xl font-bold text-green-400" id="stat-conversion">0%</p></div><div class="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center text-green-400 border border-green-500/20"><i class="fa-solid fa-chart-line"></i></div></div>
+                </div>
+            </div>
+
+            <!-- Search & Filters -->
+            <div class="flex flex-col xl:flex-row gap-4 mb-6 justify-between items-center glass-panel p-4 rounded-xl max-w-7xl mx-auto">
+                <div class="relative w-full xl:w-1/3">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fa-solid fa-search text-woca-muted/70"></i></div>
+                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Buscar por nome ou telefone..." 
+                        class="bg-black/20 border border-white/10 text-white text-sm rounded-lg focus:ring-1 focus:ring-woca-orange focus:border-woca-orange block w-full pl-10 p-2.5 placeholder-gray-500 transition-all hover:bg-black/30">
+                </div>
+                <div class="flex flex-wrap gap-2 w-full xl:w-auto justify-end">
+                    <div class="relative min-w-[140px] flex-1 xl:flex-none">
+                        <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none"><i class="fa-regular fa-paper-plane text-woca-orange text-xs"></i></div>
+                        <select id="filterIniciado" onchange="filterTable()" class="w-full bg-black/20 border border-white/10 text-white text-xs rounded-lg focus:ring-1 focus:ring-woca-orange p-2.5 pl-7 transition-all hover:bg-black/30 cursor-pointer"><option value="all">Iniciado: Todos</option><option value="Sim">Sim</option><option value="Não">Não</option><option value="">- (Vazio)</option></select>
+                    </div>
+                    <div class="relative min-w-[160px] flex-1 xl:flex-none">
+                        <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none"><i class="fa-solid fa-bars-progress text-woca-orange text-xs"></i></div>
+                        <select id="filterStatus" onchange="filterTable()" class="w-full bg-black/20 border border-white/10 text-white text-xs rounded-lg focus:ring-1 focus:ring-woca-orange p-2.5 pl-7 transition-all hover:bg-black/30 cursor-pointer"><option value="all">Status: Todos</option><option value="Sem Retorno">Sem Retorno</option><option value="Sem Interesse">Sem Interesse</option><option value="FUP Amanhã">FUP Amanhã</option><option value="Ganho">Ganho (Venda)</option><option value="">- (Vazio)</option></select>
+                    </div>
+                    <div class="relative min-w-[140px] flex-1 xl:flex-none">
+                        <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none"><i class="fa-solid fa-trophy text-woca-orange text-xs"></i></div>
+                        <select id="filterGanho" onchange="filterTable()" class="w-full bg-black/20 border border-white/10 text-white text-xs rounded-lg focus:ring-1 focus:ring-woca-orange p-2.5 pl-7 transition-all hover:bg-black/30 cursor-pointer"><option value="all">Ganho: Todos</option><option value="Sim">Sim</option><option value="Não">Não</option><option value="Já é assinante">Já é assinante</option><option value="Comprou Após a Live">Pós-Live</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl mx-auto max-w-[95%]">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs text-woca-muted uppercase bg-black/30 border-b border-white/5">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 font-semibold w-72 min-w-[250px] tracking-wider">Contato</th>
+                                <th scope="col" class="px-6 py-4 font-semibold text-center w-32 tracking-wider">Iniciado</th>
+                                <th scope="col" class="px-6 py-4 font-semibold text-center w-48 tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-4 font-semibold text-center w-40 tracking-wider">Ganho</th>
+                                <th scope="col" class="px-6 py-4 font-semibold min-w-[350px] tracking-wider">Obs</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leadsTableBody" class="divide-y divide-white/5"></tbody>
+                    </table>
+                </div>
+                <div id="emptyState" class="hidden p-16 text-center"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast"></div>
+
+    <script>
+        // --- URL ATUALIZADA ---
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzde0xEJWsrBJurbjUab-Ytnv7FW6TEUsgqYmDa2vCnp5Nuy-gj3CzPyt-Bx5QrE9Pz/exec"; 
+        
+        let leads = [];
+        let sessionUser = localStorage.getItem('wocaUser') || '';
+        let sessionPass = localStorage.getItem('wocaPass') || '';
+
+        // --- AUTH LOGIC ---
+        
+        // Verifica se já tem sessão salva
+        if(sessionUser && sessionPass) {
+            // Tenta logar direto
+            document.getElementById('loginUser').value = sessionUser;
+            document.getElementById('loginPass').value = sessionPass;
+            attemptLogin(true); // true = silent mode
+        }
+
+        function toggleAuthMode(mode) {
+            const formLogin = document.getElementById('formLogin');
+            const formRegister = document.getElementById('formRegister');
+            const title = document.getElementById('authTitle');
+            const sub = document.getElementById('authSubtitle');
+
+            if(mode === 'register') {
+                formLogin.classList.add('hidden');
+                formRegister.classList.remove('hidden');
+                title.innerText = "Solicitar Acesso";
+                sub.innerText = "Crie seu usuário e aguarde aprovação do administrador.";
+            } else {
+                formRegister.classList.add('hidden');
+                formLogin.classList.remove('hidden');
+                title.innerText = "Acesso Restrito";
+                sub.innerText = "Entre com suas credenciais para acessar o painel da Woca Week.";
+            }
+        }
+
+        async function attemptLogin(silent = false) {
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+            const btnText = document.getElementById('btnTextLogin');
+            const loader = document.getElementById('loaderLogin');
+
+            if(!user || !pass) {
+                if(!silent) showToast("Preencha usuário e senha", "error");
+                return;
+            }
+
+            if(!silent) {
+                btnText.innerText = "Entrando...";
+                loader.classList.remove('hidden');
+            }
+
+            try {
+                // Chama a API com action=login
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=login&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`);
+                const data = await response.json();
+
+                // CHECK DE SEGURANÇA: Se a API retornar um array direto (script antigo), falha o login
+                if (Array.isArray(data)) {
+                     // Força erro pois isso significa que o script velho aceitou sem validar
+                     if(!silent) {
+                        showToast("ERRO DE VERSÃO: Atualize o link do script!", "error");
+                        btnText.innerText = "Entrar";
+                        loader.classList.add('hidden');
+                     }
+                     return;
+                }
+
+                if (data.error) {
+                    if(!silent) {
+                        showToast(data.error, "error");
+                        btnText.innerText = "Entrar";
+                        loader.classList.add('hidden');
+                        document.querySelector('.glass-panel').classList.add('shake');
+                        setTimeout(() => document.querySelector('.glass-panel').classList.remove('shake'), 500);
+                        // Limpa storage se falhar
+                        localStorage.removeItem('wocaUser');
+                        localStorage.removeItem('wocaPass');
+                    }
+                } else {
+                    // SUCESSO!
+                    leads = data.data; // Acessa a propriedade data dentro do objeto de resposta
+                    
+                    // Salva sessão
+                    localStorage.setItem('wocaUser', user);
+                    localStorage.setItem('wocaPass', pass);
+                    sessionUser = user;
+                    sessionPass = pass;
+
+                    // UI Transition
+                    document.getElementById('loginScreen').classList.add('fade-out');
+                    document.getElementById('appContainer').classList.remove('hidden');
+                    document.getElementById('displayUser').innerText = user;
+                    
+                    setTimeout(() => {
+                        document.getElementById('loginScreen').style.display = 'none';
+                    }, 500);
+
+                    renderTable();
+                    updateStats();
+                }
+            } catch (error) {
+                console.error("Login Error:", error);
+                if(!silent) {
+                    showToast("Erro de conexão com o servidor", "error");
+                    btnText.innerText = "Entrar";
+                    loader.classList.add('hidden');
+                }
+            }
+        }
+
+        async function attemptRegister() {
+            const user = document.getElementById('regUser').value.trim();
+            const pass = document.getElementById('regPass').value.trim();
+            const btnText = document.getElementById('btnTextReg');
+            const loader = document.getElementById('loaderReg');
+
+            if(!user || !pass) {
+                showToast("Preencha usuário e senha", "error");
+                return;
+            }
+
+            btnText.innerText = "Solicitando...";
+            loader.classList.remove('hidden');
+
+            try {
+                // Post para Registrar
+                const payload = { action: 'register', user: user, pass: pass };
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if(data.status === 'success') {
+                    showToast("Sucesso! Aguarde aprovação.", "success");
+                    // Volta para login
+                    setTimeout(() => toggleAuthMode('login'), 2000);
+                } else {
+                    showToast(data.message || "Erro ao registrar", "error");
+                }
+            } catch (error) {
+                showToast("Erro de conexão", "error");
+            } finally {
+                btnText.innerText = "Solicitar Acesso";
+                loader.classList.add('hidden');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('wocaUser');
+            localStorage.removeItem('wocaPass');
+            location.reload();
+        }
+
+        // --- APP LOGIC (Mesma da versão anterior) ---
+        
+        // Agora fetchFromSheet é apenas um reload, pois o login já carregou os dados
+        async function fetchFromSheet() {
+            if(!sessionUser || !sessionPass) return; // Não carrega sem auth
+            
+            const btn = document.querySelector('button[title="Atualizar Lista"] i');
+            btn.classList.add('fa-spin');
+            
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=login&user=${encodeURIComponent(sessionUser)}&pass=${encodeURIComponent(sessionPass)}`);
+                const data = await response.json();
+                
+                if(!data.error) {
+                    leads = data.data; // Importante: usar data.data se a resposta vier envelopada
+                    renderTable();
+                    updateStats();
+                    showToast("Dados atualizados!", "success");
+                }
+            } catch(e) {
+                console.error(e);
+            } finally {
+                btn.classList.remove('fa-spin');
+            }
+        }
+
+        function updateLead(index, field, value) {
+            const lead = leads[index];
+            lead[field] = value; 
+            
+            if(field === 'status' && value !== '' && (!lead.contatoIniciado || lead.contatoIniciado === 'Não')) {
+                lead.contatoIniciado = 'Sim';
+            }
+            
+            // Só renderiza se não for campo de texto para não perder foco
+            if(field !== 'nome' && field !== 'obs') {
+                renderTable();
+            }
+            updateStats();
+            sendUpdateToSheet(lead.row, field, value); 
+        }
+
+        let timeoutId;
+        function debouncedUpdate(index, field, value) {
+            const lead = leads[index];
+            lead[field] = value; 
+            
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                updateLead(index, field, value);
+            }, 1000);
+        }
+
+        async function sendUpdateToSheet(rowIndex, field, value) {
+            showToast("Salvando...", "saving");
+            const payload = { row: rowIndex };
+            payload[field] = value; // Adicionar user/pass aqui se quiséssemos segurança extra no write
+            
+            try {
+                await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+                showToast("Salvo!", "success");
+            } catch (error) {
+                showToast("Erro!", "error");
+            }
+        }
+
+        // ... Restante das funções de renderização (renderTable, filterTable, etc) iguais ...
+        function filterTable() { renderTable(); }
+
+        function renderTable() {
+            const tbody = document.getElementById('leadsTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const filterIniciado = document.getElementById('filterIniciado').value;
+            const filterStatus = document.getElementById('filterStatus').value;
+            const filterGanho = document.getElementById('filterGanho').value;
+            
+            tbody.innerHTML = '';
+            let visibleCount = 0;
+
+            leads.forEach((lead, index) => {
+                const searchString = (String(lead.nome) + " " + String(lead.telefone)).toLowerCase();
+                if (!searchString.includes(searchVal)) return;
+                if (filterIniciado !== 'all' && String(lead.contatoIniciado || '') !== filterIniciado) return;
+                if (filterStatus !== 'all' && String(lead.status || '') !== filterStatus) return;
+                if (filterGanho !== 'all' && String(lead.ganho || '') !== filterGanho) return;
+
+                visibleCount++;
+
+                const contactedClass = lead.contatoIniciado === 'Sim' ? 'text-blue-300 border-blue-500/30 bg-blue-900/30 shadow-[0_0_10px_rgba(59,130,246,0.1)]' : 'text-gray-500 border-white/10 bg-black/20';
+                let statusClass = 'text-gray-500 border-white/10 bg-black/20';
+                if(lead.status === 'FUP Amanhã') statusClass = 'text-orange-300 border-orange-500/30 bg-orange-900/30 shadow-[0_0_10px_rgba(249,115,22,0.1)]';
+                if(lead.status === 'Sem Interesse') statusClass = 'text-red-300 border-red-500/30 bg-red-900/30 shadow-[0_0_10px_rgba(239,68,68,0.1)]';
+                if(lead.status === 'Sem Retorno') statusClass = 'text-yellow-200 border-yellow-500/30 bg-yellow-900/30';
+                if(lead.status === 'Ganho') statusClass = 'text-green-300 border-green-500/30 bg-green-900/30';
+                let ganhoClass = 'text-gray-500 border-white/10 bg-black/20';
+                if(['Sim', 'Comprou Após a Live'].includes(lead.ganho)) ganhoClass = 'text-green-300 font-bold border-green-500/30 bg-green-900/30 shadow-[0_0_10px_rgba(34,197,94,0.1)]';
+                if(lead.ganho === 'Já é assinante') ganhoClass = 'text-purple-300 font-bold border-purple-500/30 bg-purple-900/30 shadow-[0_0_10px_rgba(168,85,247,0.1)]';
+
+                // --- GERAÇÃO DA MENSAGEM DO FELIPE (FIXA) ---
+                // Usando template literals com quebras de linha reais
+                let mensagem = `Oi! Aqui é o Felipe do Woca! ⚡️\n\nA WOCA Week acaba dia 30/11 e ainda tá valendo a condição especial da live:\n- 1 ano vira 2\n- 4 meses viram 8 meses\n\nÉ a melhor oferta do ano e exclusiva só para a Woca Week. Se quiser aproveitar, responda “eu quero” que eu te explico tudo. 😉`;
+                
+                let mensagemEncoded = encodeURIComponent(mensagem);
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-white/5 transition-colors group border-b border-white/5 last:border-0";
+                
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="flex flex-col gap-1.5">
+                            <input type="text" value="${lead.nome || ''}" 
+                                oninput="debouncedUpdate(${index}, 'nome', this.value)"
+                                class="bg-transparent border border-transparent hover:border-white/10 focus:border-woca-orange focus:bg-black/20 rounded px-2 py-1 w-full text-white font-semibold transition-all placeholder-gray-600"
+                                placeholder="Nome...">
+                            
+                            <a href="https://wa.me/${lead.telefone}?text=${mensagemEncoded}" target="_blank" class="flex items-center gap-2 text-xs text-woca-orange hover:text-green-400 transition-colors w-fit pl-2">
+                                <i class="fa-brands fa-whatsapp"></i> ${formatPhone(lead.telefone)}
+                            </a>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <select onchange="updateLead(${index}, 'contatoIniciado', this.value)" 
+                            class="w-full text-xs rounded-lg px-3 py-2 border cursor-pointer font-medium transition-all ${contactedClass}">
+                            <option value="" ${!lead.contatoIniciado ? 'selected' : ''}>-</option>
+                            <option value="Não" ${lead.contatoIniciado === 'Não' ? 'selected' : ''}>Não</option>
+                            <option value="Sim" ${lead.contatoIniciado === 'Sim' ? 'selected' : ''}>Sim</option>
+                        </select>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <select onchange="updateLead(${index}, 'status', this.value)" 
+                            class="w-full text-xs rounded-lg px-3 py-2 border cursor-pointer font-medium transition-all ${statusClass}">
+                            <option value="" ${!lead.status ? 'selected' : ''}>-</option>
+                            <option value="Sem Retorno" ${lead.status === 'Sem Retorno' ? 'selected' : ''}>Sem Retorno</option>
+                            <option value="Sem Interesse" ${lead.status === 'Sem Interesse' ? 'selected' : ''}>Sem Interesse</option>
+                            <option value="FUP Amanhã" ${lead.status === 'FUP Amanhã' ? 'selected' : ''}>FUP Amanhã</option>
+                            <option value="Ganho">Ganho (Venda)</option>
+                        </select>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <select onchange="updateLead(${index}, 'ganho', this.value)" 
+                            class="w-full text-xs rounded-lg px-3 py-2 border cursor-pointer font-medium transition-all ${ganhoClass}">
+                            <option value="" ${!lead.ganho ? 'selected' : ''}>-</option>
+                            <option value="Não" ${lead.ganho === 'Não' ? 'selected' : ''}>Não</option>
+                            <option value="Sim" ${lead.ganho === 'Sim' ? 'selected' : ''}>Sim</option>
+                            <option value="Já é assinante" ${lead.ganho === 'Já é assinante' ? 'selected' : ''}>Assinante</option>
+                            <option value="Comprou Após a Live" ${lead.ganho === 'Comprou Após a Live' ? 'selected' : ''}>Pós-Live</option>
+                        </select>
+                    </td>
+                    <td class="px-6 py-4">
+                        <input type="text" value="${lead.obs || ''}" 
+                            oninput="debouncedUpdate(${index}, 'obs', this.value)" 
+                            class="bg-black/20 border border-white/10 hover:border-white/30 focus:border-woca-orange rounded-lg px-3 py-2 w-full text-gray-300 focus:text-white text-xs transition-all placeholder-gray-600"
+                            placeholder="Adicionar observação...">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (leads.length === 0) {
+                emptyState.innerHTML = `
+                    <i class="fa-solid fa-spinner fa-spin text-2xl text-woca-orange mb-3"></i>
+                    <p class="text-woca-muted text-sm">Carregando dados...</p>
+                `;
+                emptyState.classList.remove('hidden');
+            } else if (visibleCount === 0) {
+                emptyState.innerHTML = `
+                    <div class="flex flex-col items-center opacity-70">
+                        <i class="fa-solid fa-magnifying-glass-minus text-3xl text-woca-muted mb-3"></i>
+                        <p class="text-woca-muted text-sm">Poxa, não encontramos ninguém com esse nome.</p>
+                    </div>
+                `;
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+        }
+
+        function updateStats() {
+            const total = leads.length;
+            const contacted = leads.filter(l => l.contatoIniciado === 'Sim').length;
+            const won = leads.filter(l => ['Sim', 'Já é assinante', 'Comprou Após a Live'].includes(l.ganho)).length;
+            const conversion = total > 0 ? ((won / total) * 100).toFixed(1) : 0;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-contacted').innerText = contacted;
+            document.getElementById('stat-won').innerText = won;
+            document.getElementById('stat-conversion').innerText = conversion + '%';
+        }
+
+        function formatPhone(phone) {
+            if(!phone) return "-";
+            phone = phone.toString();
+            if(phone.length < 10) return phone;
+            return `(${phone.substring(2,4)}) ${phone.substring(4,9)}-${phone.substring(9)}`;
+        }
+
+        function showToast(message, type) {
+            const toast = document.getElementById("toast");
+            let icon = '';
+            let className = '';
+            
+            if(type === 'saving') {
+                icon = '<i class="fa-solid fa-circle-notch fa-spin text-woca-orange"></i>';
+                className = 'toast-saving';
+            } else if(type === 'success') {
+                icon = '<i class="fa-solid fa-circle-check text-green-400"></i>';
+                className = 'toast-success';
+            } else {
+                icon = '<i class="fa-solid fa-circle-exclamation text-red-500"></i>';
+                className = 'toast-error';
+            }
+
+            toast.className = ''; 
+            toast.classList.add(className);
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            toast.classList.add('show');
+
+            if(type !== 'saving') {
+                setTimeout(function(){ 
+                    toast.classList.remove("show"); 
+                }, 3000);
+            }
+        }
+
+        // Init
+        window.onload = fetchFromSheet;
+
+    </script>
+</body>
+</html>
