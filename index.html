@@ -548,9 +548,8 @@
                 if(['Sim', 'Comprou Após a Live'].includes(lead.ganho)) ganhoClass = 'text-green-300 font-bold border-green-500/30 bg-green-900/30 shadow-[0_0_10px_rgba(34,197,94,0.1)]';
                 if(lead.ganho === 'Já é assinante') ganhoClass = 'text-purple-300 font-bold border-purple-500/30 bg-purple-900/30 shadow-[0_0_10px_rgba(168,85,247,0.1)]';
 
-                // --- GERAÇÃO DA MENSAGEM DO FELIPE (FIXA) ---
-                // Usando template literals com quebras de linha reais
-                let mensagem = `Oi! Aqui é o Felipe do Woca! ⚡️\n\nA WOCA Week acaba dia 30/11 e ainda tá valendo a condição especial da live:\n- 1 ano vira 2\n- 4 meses viram 8 meses\n\nÉ a melhor oferta do ano e exclusiva só para a Woca Week. Se quiser aproveitar, responda “eu quero” que eu te explico tudo. 😉`;
+                // --- GERAÇÃO DA MENSAGEM DO FELIPE (SEM EMOJIS) ---
+                let mensagem = `Oi! Aqui é o Felipe do Woca! \n\nA WOCA Week acaba dia 30/11 e ainda tá valendo a condição especial da live:\n- 1 ano vira 2\n- 4 meses viram 8 meses\n\nÉ a melhor oferta do ano e exclusiva só para a Woca Week. Se quiser aproveitar, responda “eu quero” que eu te explico tudo.`;
                 
                 let mensagemEncoded = encodeURIComponent(mensagem);
 
